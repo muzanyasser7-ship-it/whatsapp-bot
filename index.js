@@ -1,27 +1,25 @@
-const qrcode = require("qrcode-terminal");
-const { Client } = require("whatsapp-web.js");
+const { makeWASocket, useMultiFileAuthState } = require("@whiskeysockets/baileys");
 
-const client = new Client();
+async function startBot() {
+    const { state, saveCreds } = await useMultiFileAuthState("auth_info");
+    const sock = makeWASocket({ auth: state });
 
-// أول ما يطلب تسجيل دخول، يطبع QR Code في الـ Logs
-client.on("qr", (qr) => {
-    qrcode.generate(qr, { small: true });
-    console.log("Scan this QR code with WhatsApp to connect.");
-});
+    // حفظ بيانات الدخول
+    sock.ev.on("creds.update", saveCreds);
 
-// لما يتسجل الدخول
-client.on("ready", () => {
-    console.log("WhatsApp bot is ready!");
-});
+    // لما تجي رسالة جديدة
+    sock.ev.on("messages.upsert", async (msg) => {
+        const message = msg.messages[0];
+        if (!message.message) return;
 
-// لما تجي رسالة جديدة
-client.on("message", (message) => {
-    console.log("Received message:", message.body);
+        const text = message.message.conversation || "";
+        console.log("Received message:", text);
 
-    // مثال: رد تلقائي
-    if (message.body.toLowerCase() === "مرحبا") {
-        message.reply("أهلاً يا مزنة 🌸، البوت شغال!");
-    }
-});
+        // مثال: رد تلقائي
+        if (text.toLowerCase() === "مرحبا") {
+            await sock.sendMessage(message.key.remoteJid, { text: "أهلاً يا مزنة 🌸، البوت شغال!" });
+        }
+    });
+}
 
-client.initialize();
+startBot();
