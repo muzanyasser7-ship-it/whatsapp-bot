@@ -1,17 +1,27 @@
-const express = require("express");
-const bodyParser = require("body-parser");
+const qrcode = require("qrcode-terminal");
+const { Client } = require("whatsapp-web.js");
 
-const app = express();
-app.use(bodyParser.json());
+const client = new Client();
 
-// نقطة استقبال رسائل واتساب
-app.post("/webhook", (req, res) => {
-    console.log("Received message:", req.body);
-    res.sendStatus(200);
+// أول ما يطلب تسجيل دخول، يطبع QR Code في الـ Logs
+client.on("qr", (qr) => {
+    qrcode.generate(qr, { small: true });
+    console.log("Scan this QR code with WhatsApp to connect.");
 });
 
-// نخلي السيرفر يشتغل على المنفذ اللي Render يديه
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`WhatsApp bot is running on port ${PORT}`);
+// لما يتسجل الدخول
+client.on("ready", () => {
+    console.log("WhatsApp bot is ready!");
 });
+
+// لما تجي رسالة جديدة
+client.on("message", (message) => {
+    console.log("Received message:", message.body);
+
+    // مثال: رد تلقائي
+    if (message.body.toLowerCase() === "مرحبا") {
+        message.reply("أهلاً يا مزنة 🌸، البوت شغال!");
+    }
+});
+
+client.initialize();
